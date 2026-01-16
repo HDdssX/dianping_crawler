@@ -80,17 +80,17 @@ class Crawler:
         print(f"[-] ANTI-BAN: Sleeping for {sleep_time:.2f} seconds...")
         time.sleep(sleep_time)
 
-    def fetch_html(self, url: str, allow_manual=True, timeout_ms: int = 20000) -> str:
+    def fetch_html(self, url: str, allow_manual=True, timeout_ms: int = 20000, allow_time: int = 30) -> str:
         self._anti_ban_sleep()
         html = ""
         try:
             self.page.goto(url, wait_until="domcontentloaded", timeout=timeout_ms)
             time.sleep(random.uniform(2, 4))
             if self._judge_verify(html):
-                if allow_manual:
+                if allow_manual and allow_time > 0:
                     print("[!] Detected verification page. Please solve it manually in the opened browser.")
                     input("Press Enter to continue after passing the verification...")
-                    html = self.fetch_html(url, allow_manual=False, timeout_ms=timeout_ms)
+                    html = self.fetch_html(url, allow_manual=False, timeout_ms=timeout_ms, allow_time=allow_time-1)
                 else:
                     return None
             else:
