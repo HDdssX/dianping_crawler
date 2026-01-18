@@ -108,7 +108,7 @@ class Crawler:
             resp = self.page.request.get(url, timeout=timeout_ms)
             if resp.status != 200:
                 print(f"[!] Error when fetching {url}: Status code {resp.status}")
-                exit(0)
+                return {"error": f"Status code {resp.status}"}
             return resp.json()
         except Exception as e:
             print(f"[!] Error when fetching {url}: {e}")

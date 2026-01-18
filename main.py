@@ -6,7 +6,7 @@ from pw import *
 from config import *
 import os
 import csv
-
+import json
 
 # 查找城市 ID
 def find_city_id(city_name: str) -> str:
@@ -48,6 +48,10 @@ def get_comments(shop_id: str, shop_name: str, max_pages: int = COMMENT_PAGES) -
 
         req = crawler.fetch_json(url)
 
+        if "error" in req:
+            print(f"[!] Error fetching comments for shop {shop_id}: {req['error']}")
+            return [-1]
+
         for list in req['list']:
             stars = list['star']
             comment = list['content']
@@ -71,6 +75,24 @@ def get_comments(shop_id: str, shop_name: str, max_pages: int = COMMENT_PAGES) -
 
 
 if __name__ == "__main__":
+
+    last_failed_city = None
+    last_failed_shops = None
+
+    try:
+        with open("last_failed_city.txt", "r", encoding="utf-8") as f:
+            data = json.load(f)
+        last_failed_city = data["last_failed_city"]
+        last_failed_shops = data["shops"]
+        print(f"[+] Resuming from last failed city: {last_failed_city}")
+        if last_failed_city in CITIES:
+            for city in CITIES:
+                if city == last_failed_city:
+                    break
+                del CITIES[city]
+    except Exception:
+        pass
+
     file_exists = os.path.exists(SCV_FILE_NAME)
     mode = "a" if file_exists else "w"
     with open(SCV_FILE_NAME, mode, encoding="utf-8-sig", newline="") as f:
@@ -82,23 +104,48 @@ if __name__ == "__main__":
     SEARCH_KEYWORD = quote(SEARCH_KEYWORD)
     crawler.start(headless=False)
 
+
+    city_id = {}
     # 获取城市编号
     for city in CITIES:
-        CITIES[city] = find_city_id(city)
-        print(f"[+] {city}: {CITIES[city]}")
+        city_id[city] = find_city_id(city)
+        print(f"[+] {city}: {city_id[city]}")
 
-    for city_name, city_id in CITIES.items():
+    for city_name, city_id in city_id.items():
         print(f"\n\n[~] city: {city_name}\n\n")
 
-        shops = search_for_shop_id(city_id)
+        if last_failed_shops is not None and last_failed_city is not None:
+            shops = last_failed_shops
+            del last_failed_shops
+            os.remove("last_failed_city.txt")
+            print(f"[+] Resuming shop list for city {city_name} from last failure.")
+        else:
+            shops = search_for_shop_id(city_id)
         print(f"\n[~] Found {len(shops)} shops in {city_name}.\n")
 
         for i, shop in enumerate(shops):
             print(f"[{i + 1}/{len(shops)}] {shop['name']}\n")
             shop_reviews = get_comments(shop['id'], shop['name'])
+
+            if shop_reviews == [-1]:
+                print(f"[!] Stopping further requests for city {city_name} due to error.")
+                with open("last_failed_city.txt", "w", encoding="utf-8") as f:
+                    json.dump(
+                        {
+                            "city_name": city_name,
+                            "shops": shops[i:]
+                        },
+                        f,
+                        ensure_ascii=False
+                    )
+                    print(f"[+] Recorded last failed city: {city_name}")
+                break
+
             for r in shop_reviews:
                 r["City"] = city_name
 
             with open(SCV_FILE_NAME, "a", encoding="utf-8-sig", newline="") as f:
                 writer = csv.DictWriter(f, fieldnames=FIELDNAMES)
                 writer.writerows(shop_reviews)
+
+    crawler.stop()
