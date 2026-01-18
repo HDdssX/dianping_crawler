@@ -49,7 +49,7 @@ playwright install
   1. 在浏览器中打开大众点评网并登录。
   2. 打开开发者工具 (F12)，刷新页面。
   3. 在 Network 面板找到任意请求，复制 Request Headers 中的 Cookie。
-  4. 将 Cookie 解析为字典格式填入 `COOKIES` 变量中。
+  4. 将 Cookie 字符串填入 `COOKIES` 变量中。
 
 ## 使用方法
 
