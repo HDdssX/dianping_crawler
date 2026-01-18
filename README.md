@@ -53,10 +53,32 @@ playwright install
 
 ## 使用方法
 
-直接运行 `main.py` 即可启动爬虫：
+### 1. 基础运行
+
+直接运行 `main.py` 即可启动爬虫（程序将使用 `config.py` 中的默认配置）：
 
 ```bash
 python main.py
+```
+
+### 2. 命令行参数运行
+
+支持通过命令行参数覆盖 `config.py` 中的默认配置，方便动态调整抓取任务：
+
+| 参数 | 说明 | 默认值 | 示例 |
+| :--- | :--- | :--- | :--- |
+| `--keyword` | 搜索关键词 | `config.SEARCH_KEYWORD` | `--keyword "烧烤"` |
+| `--max_pages` | 搜索商户列表的最大页数 | `config.MAX_PAGES` | `--max_pages 2` |
+| `--comment_pages` | 每个商户抓取的评论页数 | `config.COMMENT_PAGES` | `--comment_pages 5` |
+| `--output` | 结果保存的 CSV 文件名 | `config.SCV_FILE_NAME` | `--output "bbq.csv"` |
+| `--cookies` | 浏览器 Cookie 字符串 | `config.COOKIES` | `--cookies "mysession=..."` |
+
+**示例命令：**
+
+搜索“烧烤”，抓取前 2 页商户，每家商户 1 页评论，保存为 `bbq.csv`：
+
+```bash
+python main.py --keyword "烧烤" --max_pages 2 --comment_pages 1 --output "bbq.csv"
 ```
 
 ### 运行流程
