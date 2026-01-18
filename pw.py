@@ -1,16 +1,16 @@
 from playwright.sync_api import sync_playwright
-from config import *
+import config
 import time
 import random
 
 
-def cookies_dict_to_playwright(cookies_dict: dict):
+def cookies_dict_to_playwright(cookies: dict) -> list:
     """
     Convert {"k":"v"} into playwright cookies list.
     Using domain-based cookie is more stable than url-based for cross-subdomains.
     """
     out = []
-    for k, v in cookies_dict.items():
+    for k, v in cookies.items():
         out.append({
             "name": k,
             "value": v,
@@ -40,12 +40,12 @@ class Crawler:
         )
 
         self.context = self.browser.new_context(
-            user_agent=HEADERS["User-Agent"],
+            user_agent=config.HEADERS["User-Agent"],
             locale="zh-CN",
             viewport={"width": 1366, "height": 768},
         )
 
-        self.context.add_cookies(cookies_dict_to_playwright(COOKIES))
+        self.context.add_cookies(cookies_dict_to_playwright(config.COOKIES))
 
         self.page = self.context.new_page()
 
@@ -113,6 +113,3 @@ class Crawler:
         except Exception as e:
             print(f"[!] Error when fetching {url}: {e}")
         return None
-
-
-crawler = Crawler()

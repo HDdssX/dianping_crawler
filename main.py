@@ -3,24 +3,26 @@ from bs4 import BeautifulSoup
 from urllib.parse import quote
 import string
 from pw import *
-from config import *
+import config
 import os
 import csv
 import json
+import argparse
+
 
 # 查找城市 ID
 def find_city_id(city_name: str) -> str:
-    req = crawler.fetch_html(BASE_URL + city_name)
+    req = crawler.fetch_html(config.BASE_URL + city_name)
     match = re.search(r"cityId\s*=\s*(\d+)", req)
     return match.group(1)
 
 
 # 搜索获取商户 ID 和名称
-def search_for_shop_id(city_id: str, max_pages: int = MAX_PAGES) -> list:
+def search_for_shop_id(city_id: str, max_pages: int = config.MAX_PAGES) -> list:
     shop_list = []
     for page in range(1, max_pages + 1):
         print(f"[~] 正在搜索 {city_id} 第 {page} 页商户...")
-        url = f"{BASE_URL}search/keyword/{city_id}/0_{SEARCH_KEYWORD}" + (f"/p{page}" if page > 1 else "")
+        url = f"{config.BASE_URL}search/keyword/{city_id}/0_{config.SEARCH_KEYWORD}" + (f"/p{page}" if page > 1 else "")
         req = crawler.fetch_html(url)
         soup = BeautifulSoup(req, 'html.parser')
         for a in soup.select("div.tit > a[data-shopid]"):
@@ -33,7 +35,7 @@ def search_for_shop_id(city_id: str, max_pages: int = MAX_PAGES) -> list:
 
 
 # 通过商户 ID 获取评论
-def get_comments(shop_id: str, shop_name: str, max_pages: int = COMMENT_PAGES) -> list:
+def get_comments(shop_id: str, shop_name: str, max_pages: int = config.COMMENT_PAGES) -> list:
     comments = []
     for page in range(max_pages):
         url = (
@@ -72,7 +74,29 @@ def get_comments(shop_id: str, shop_name: str, max_pages: int = COMMENT_PAGES) -
     return comments
 
 
+def trans_cookies(cookies_str: str) -> dict:
+    cookies = {}
+    for item in cookies_str.split(";"):
+        key, value = item.split("=", 1)
+        cookies[key.strip()] = value.strip()
+    return cookies
+
 if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--max_pages", help="搜索商户时的最大页数", default=config.MAX_PAGES, type=int)
+    parser.add_argument("--comment_pages", help="获取评论时的最大页数", default=config.COMMENT_PAGES, type=int)
+    parser.add_argument("--keyword", help="搜索关键词", default=config.SEARCH_KEYWORD, type=str)
+    parser.add_argument("--output", help="输出 CSV 文件名", default=config.SCV_FILE_NAME, type=str)
+    parser.add_argument("--cookies", help="Cookies 字符串", default=config.COOKIES, type=str)
+
+    args = parser.parse_args()
+
+    config.MAX_PAGES = args.max_pages
+    config.COMMENT_PAGES = args.comment_pages
+    config.SEARCH_KEYWORD = quote(args.keyword)
+    config.SCV_FILE_NAME = args.output
+    config.COOKIES = trans_cookies(args.cookies)
 
     last_failed_city = None
     last_failed_shops = None
@@ -83,29 +107,27 @@ if __name__ == "__main__":
         last_failed_city = data["last_failed_city"]
         last_failed_shops = data["shops"]
         print(f"[+] Resuming from last failed city: {last_failed_city}")
-        if last_failed_city in CITIES:
-            for city in CITIES:
+        if last_failed_city in config.CITIES:
+            for city in config.CITIES:
                 if city == last_failed_city:
                     break
-                del CITIES[city]
+                del config.CITIES[city]
     except Exception:
         pass
 
-    file_exists = os.path.exists(SCV_FILE_NAME)
+    file_exists = os.path.exists(config.SCV_FILE_NAME)
     mode = "a" if file_exists else "w"
-    with open(SCV_FILE_NAME, mode, encoding="utf-8-sig", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=FIELDNAMES)
+    with open(config.SCV_FILE_NAME, mode, encoding="utf-8-sig", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=config.FIELDNAMES)
         if not file_exists:
             writer.writeheader()
 
-    # url 编码
-    SEARCH_KEYWORD = quote(SEARCH_KEYWORD)
+    crawler = Crawler()
     crawler.start(headless=False)
-
 
     city_id = {}
     # 获取城市编号
-    for city in CITIES:
+    for city in config.CITIES:
         city_id[city] = find_city_id(city)
         print(f"[+] {city}: {city_id[city]}")
 
@@ -142,8 +164,8 @@ if __name__ == "__main__":
             for r in shop_reviews:
                 r["City"] = city_name
 
-            with open(SCV_FILE_NAME, "a", encoding="utf-8-sig", newline="") as f:
-                writer = csv.DictWriter(f, fieldnames=FIELDNAMES)
+            with open(config.SCV_FILE_NAME, "a", encoding="utf-8-sig", newline="") as f:
+                writer = csv.DictWriter(f, fieldnames=config.FIELDNAMES)
                 writer.writerows(shop_reviews)
 
     crawler.stop()
