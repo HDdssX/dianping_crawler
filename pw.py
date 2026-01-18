@@ -28,7 +28,7 @@ class Crawler:
         self.context = None
         self.page = None
 
-    def start(self, headless: bool = False):
+    def start(self, headless: bool = False) -> None:
         self.pw = sync_playwright().start()
 
         self.browser = self.pw.chromium.launch(
@@ -69,9 +69,9 @@ class Crawler:
         keywords = ["验证中心", "安全验证", "滑块", "captcha", "verify", "风控"]
         return any(k in html for k in keywords)
 
-    def _anti_ban_sleep(self):
+    def _anti_ban_sleep(self) -> None:
         self.total_requests += 1
-        sleep_time = random.uniform(6, 12)
+        sleep_time = random.uniform(8, 12)
 
         if self.total_requests % 15 == 0:
             sleep_time += random.uniform(90, 110)

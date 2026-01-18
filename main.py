@@ -36,7 +36,6 @@ def search_for_shop_id(city_id: str, max_pages: int = MAX_PAGES) -> list:
 def get_comments(shop_id: str, shop_name: str, max_pages: int = COMMENT_PAGES) -> list:
     comments = []
     for page in range(max_pages):
-        print(f"[*] 正在获取商户 {shop_id} 第 {page + 1} 页评论...")
         url = (
             "https://mapi.dianping.com/mapi/review/outsidesiftedreviewlist.bin"
             "?optimus_code=10&optimus_partner=76&optimus_risk_level=71&reqsource=1"
@@ -52,21 +51,20 @@ def get_comments(shop_id: str, shop_name: str, max_pages: int = COMMENT_PAGES) -
             print(f"[!] Error fetching comments for shop {shop_id}: {req['error']}")
             return [-1]
 
-        for list in req['list']:
-            stars = list['star']
-            comment = list['content']
-            tm = list['time']
-            username = list['feedUser']['userName']
+        if req['list'] is None:
+            return comments
 
+        print(f"[*] 正在获取商户 {shop_id} 第 {page + 1} 页评论...")
+        for shop_comment in req['list']:
             dic = {
                 "ShopName": shop_name,
-                "User": username,
-                "Score": stars,
-                "Time": tm,
-                "Content": comment.replace("\n", " ")
+                "User": shop_comment['feedUser']['userName'],
+                "Score": shop_comment['star'],
+                "Time": shop_comment['time'],
+                "Content": shop_comment['content'].replace("\n", " ")
             }
 
-            if (dic not in comments):
+            if dic not in comments:
                 comments.append(dic)
             else:
                 return comments
