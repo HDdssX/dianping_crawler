@@ -44,8 +44,7 @@ playwright install
   - `SEARCH_KEYWORD`: 你想要搜索的关键词（例如 `'轻食'`）。
   - `CITIES`: 目标城市列表（字典格式，键为城市拼音或英文名）。
 
-- **Cookie 配置 (重要)**:
-  大众点评对未登录访问限制较多，且 Cookie 有效期较短。你需要手动获取 Cookie 并更新到 `config.py` 中。
+- **Cookie 配置**:
   1. 在浏览器中打开大众点评网并登录。
   2. 打开开发者工具 (F12)，刷新页面。
   3. 在 Network 面板找到任意请求，复制 Request Headers 中的 Cookie。
